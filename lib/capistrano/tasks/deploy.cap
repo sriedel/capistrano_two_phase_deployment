@@ -1,0 +1,6 @@
+namespace :deploy do
+  desc 'Generate a new release archive and push it to the intermediary host'
+  task :prepare_release do
+    invoke 'intermediate_host:prepare_release'
+  end
+end

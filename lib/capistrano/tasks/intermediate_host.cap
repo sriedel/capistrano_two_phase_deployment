@@ -1,0 +1,85 @@
+namespace :intermediate_host do
+  def strategy
+    @strategy ||= Capistrano::IntermediateHost.new(self, Capistrano::IntermediateHost::GitStrategy )
+  end
+
+  def upload_path 
+    @upload_path ||=  "#{releases_path}/#{release_timestamp}.tar.gz"
+  end
+
+  def current_tgz
+    @current_tgz ||= deploy_path.join( "current.tar.gz" )
+  end
+
+  desc 'check stuff'
+  task :check do
+    strategy.check
+  end
+
+  desc 'Update the repo mirror to reflect the origin state'
+  task :update do
+    output_file = strategy.generate_archive
+  end
+
+  desc 'Upload a release to the intermediary server'
+  task :upload_release do
+    output_file = strategy.generate_archive
+
+    on primary( :intermediate_host ) do
+      upload! output_file, upload_path
+    end
+  end
+
+  desc 'Copy repo to releases host'
+  task :prepare_release => :upload_release do
+    on primary( :intermediate_host ) do
+      execute :rm, "-f", current_tgz
+      execute :ln, "-sf", upload_path, current_tgz
+    end
+  end
+
+  def mk_tempfile_name
+    tempfile_template = "#{fetch( :application )}_XXXXXX"
+    
+    mktemp_version_info = capture( :mktemp, "-V" )
+    if mktemp_version_info =~ /mktemp version 1\./
+      # Old CentOS/OpenBSD mktemp style
+      capture( :mktemp, "-p #{fetch(:deploy_to)}", tempfile_template )
+    else
+      # Otherwise, be more sane.
+      capture( :mktemp, "--suffix=.tar.gz", "--tmpdir=#{fetch(:deploy_to)}", tempfile_template )
+    end
+  end
+
+  desc 'Extract the archive timestamp from current.tar.gz on intermediary host'
+  task :set_release_path_based_on_archive_timestamp do
+    on primary( :intermediate_host ) do
+      archive_timestamp = capture( :tar, "tfzv", current_tgz, " | head -n 1 | awk '{print $6}'" )
+
+      deploy_timestamp = "#{release_timestamp}_#{archive_timestamp}"
+
+      set( :release_path, releases_path.join( deploy_timestamp ) )
+    end
+  end
+
+  desc 'Pull release from releases host'
+  task :update => :set_release_path_based_on_archive_timestamp do
+    on release_roles :all do
+      download_path = mk_tempfile_name
+
+      execute :scp, "#{primary( :intermediate_host )}:#{current_tgz}",
+                    download_path
+
+      execute :mkdir, "-p", release_path
+      execute :tar, "xfz", download_path, "-C", release_path, "--strip-components=1"
+      execute :rm, "-f", download_path
+    end
+  end
+
+  desc 'Create release from pulled repo'
+  task :create_release => :update do
+    on release_roles :all do
+      # something
+    end
+  end
+end
