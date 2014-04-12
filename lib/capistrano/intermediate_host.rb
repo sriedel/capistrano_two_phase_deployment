@@ -1,3 +1,4 @@
+require 'capistrano'
 require 'capistrano/scm'
 require 'tempfile'
 
@@ -24,3 +25,6 @@ class Capistrano::IntermediateHost < Capistrano::SCM
 
   end
 end
+
+import File.join( File.dirname( __FILE__ ), 'tasks', 'intermediate_host.cap' )
+import File.join( File.dirname( __FILE__ ), 'tasks', 'deploy.cap' )

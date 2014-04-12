@@ -16,8 +16,8 @@ Gem::Specification.new do |s|
   s.rdoc_options = ["--charset=UTF-8"]
   s.require_paths = ["lib"]
 
-  s.extra_rdoc_files = %W{ README }
-  s.files = %W{ README
+  s.extra_rdoc_files = %W{ README.md }
+  s.files = %W{ README.md
                 lib/capistrano/intermediate_host.rb
                 lib/capistrano/tasks/deploy.cap
                 lib/capistrano/tasks/intermediate_host.cap
