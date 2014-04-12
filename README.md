@@ -15,6 +15,12 @@ and saves network bandwith, because the new release is no longer transmitted
 to all servers from an external source.
 
 ## Installation
+Add the following to your Capfile:
+
+```
+require 'capistrano/intermediate_host'
+```
+
 Add the following to your deploy.rb file:
 ```
 set :scm, :intermediate_host
